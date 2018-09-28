@@ -11,7 +11,7 @@ export class Title extends Scene {
 
     create() {
         this.input.keyboard.once('keydown', event => {
-            this.scene.start(scenes.breakout)
+            this.scene.start(scenes.pong)
         })
 
         const width = this.cameras.main.width

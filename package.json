@@ -1,5 +1,5 @@
 {
-    "name": "four player pong",
+    "name": "four-player-pong",
     "version": "0.0.1",
     "description": "Pong game using Phaser",
     "main": "src/index.js",
