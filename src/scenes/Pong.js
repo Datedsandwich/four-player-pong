@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import assets from '../const/assets'
 import keys from '../const/keys'
 import scenes from '../const/scenes'
+import { runInThisContext } from 'vm'
 
 class Pong extends Phaser.Scene {
     constructor() {
@@ -25,43 +26,23 @@ class Pong extends Phaser.Scene {
         this.physics.add.collider(this.ball, this.paddle3, this.hitPaddle, null, this)
         this.physics.add.collider(this.ball, this.paddle4, this.hitPaddle, null, this)
 
-        this.scores = [0, 0]
+        this.physics.add.collider(this.secondaryBall, this.paddle, this.hitPaddle, null, this)
+        this.physics.add.collider(this.secondaryBall, this.paddle2, this.hitPaddle, null, this)
+        this.physics.add.collider(this.secondaryBall, this.paddle3, this.hitPaddle, null, this)
+        this.physics.add.collider(this.secondaryBall, this.paddle4, this.hitPaddle, null, this)
 
-        this.redTeamScore = this.make.text({
-            x: 0,
-            y: 0,
-            text: 'Red Team: 0',
-            style: {
-                font: '20px monospace',
-                fill: '#ff0044'
-            }
-        })
-
-        this.blueTeamScore = this.make.text({
-            x: this.cameras.main.width - 150,
-            y: 0,
-            text: 'Blue Team: 0',
-            style: {
-                font: '20px monospace',
-                fill: '#0000ff'
-            }
-        })
+        this.physics.add.collider(this.ball, this.secondaryBall, null, null, this)
+        this.physics.add.collider(this.secondaryBall, this.ball, null, null, this)
     }
 
     update() {
-        const bottom = this.ball.y > this.cameras.main.height
-        const top = this.ball.y < 0
-        const left = this.ball.x < 0
-        const right = this.ball.x > this.cameras.main.width
-
-        if (bottom || top) {
-            this.scores[0] += 1
-            this.resetBall()
+        if (this.checkBall(this.ball)) {
+            this.resetBall(this.ball)
         }
 
-        if (left || right) {
-            this.scores[1] += 1
-            this.resetBall()
+        if (this.checkBall(this.secondaryBall)) {
+            this.secondaryBall.disableBody(true, true)
+            this.resetBall(this.secondaryBall)
         }
     }
 
@@ -82,12 +63,18 @@ class Pong extends Phaser.Scene {
         } else {
             ball.setVelocityY(2 + Math.random() * modifier)
         }
+
+        if (!this.secondaryBall.body.enable && this.getRandomArbitrary(0, 5) > 4) {
+            this.secondaryBall.enableBody(false, this.ball.x, this.ball.y, true, true)
+            this.secondaryBall.setPosition(this.ball.x, this.ball.y)
+            this.secondaryBall.setVelocity(-this.ball.x, -this.ball.y)
+        }
     }
 
-    resetBall() {
-        this.ball.setVelocity(0)
-        this.ball.setPosition(400, 300)
-        this.ball.setData('onPaddle', true)
+    resetBall(ball) {
+        ball.setVelocity(0)
+        ball.setPosition(400, 300)
+        ball.setData('onPaddle', true)
 
         this.redTeamScore.setText(`Red Team: ${this.scores[0]}`)
         this.blueTeamScore.setText(`Blue Team: ${this.scores[1]}`)
@@ -95,8 +82,10 @@ class Pong extends Phaser.Scene {
 
     setUpObjects() {
         this.ball = this.physics.add.image(400, 300, keys.assets, assets.ball).setBounce(1)
-
         this.ball.setData('onPaddle', true)
+
+        this.secondaryBall = this.physics.add.image(400, 300, keys.assets, assets.ball).setBounce(1)
+        this.secondaryBall.disableBody(true, true)
 
         this.paddle = this.physics.add
             .image(400, 550, keys.assets, assets.paddle)
@@ -122,6 +111,28 @@ class Pong extends Phaser.Scene {
         this.paddle4.setRotation(1.5708)
         this.paddle4.body.setSize(24, 104, 50, 50)
 
+        this.scores = [0, 0]
+
+        this.redTeamScore = this.make.text({
+            x: 0,
+            y: 0,
+            text: 'Red Team: 0',
+            style: {
+                font: '20px monospace',
+                fill: '#ff0044'
+            }
+        })
+
+        this.blueTeamScore = this.make.text({
+            x: this.cameras.main.width - 250,
+            y: 0,
+            text: 'Blue Team: 0',
+            style: {
+                font: '20px monospace',
+                fill: '#0000ff'
+            }
+        })
+
         this.setUpInputEvents()
     }
 
@@ -135,6 +146,25 @@ class Pong extends Phaser.Scene {
         } else {
             return arbitrary
         }
+    }
+
+    checkBall(ball) {
+        const bottom = ball.y > this.cameras.main.height
+        const top = ball.y < 0
+        const left = ball.x < 0
+        const right = ball.x > this.cameras.main.width
+
+        if (bottom || top) {
+            this.scores[0] += 1
+            return true
+        }
+
+        if (left || right) {
+            this.scores[1] += 1
+            return true
+        }
+
+        return false
     }
 
     setUpInputEvents() {
